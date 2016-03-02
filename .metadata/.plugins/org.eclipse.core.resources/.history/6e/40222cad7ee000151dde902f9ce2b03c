@@ -198,19 +198,14 @@ public class IdentityCard extends Applet{
 			apdu.sendBytesLong(output,(short)0,(short)sigLength);
 		}
 	}
-	
-	public void getCertificateLength(APDU apdu){
-		
-	}
 
 	public void getCertificate(APDU apdu){
 		if(!pin.isValidated()) ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
 		else{
 			byte[] buffer = apdu.getBuffer();
 			short p1= buffer[ISO7816.OFFSET_P1];
-			short p2 = buffer[ISO7816.OFFSET_P2];
 			apdu.setOutgoing();
-			apdu.sendBytesLong(certificate,(short)p1,(short) p2);
+			apdu.sendBytesLong(certificate,(short)prevLength,(short) toSend);
 	}
 	}
 }
