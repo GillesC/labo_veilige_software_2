@@ -16,16 +16,16 @@ public class IdentityCard extends Applet implements ExtendedLength {
 	private final static byte IDENTITY_CARD_CLA =(byte)0x80;
 
 	private static final byte VALIDATE_PIN_INS = 0x22;
-	private static final byte GET_NAME_INS = 0x24;
-	private static final byte GET_SERIAL_INS = 0x26;
+	private final static short SW_VERIFICATION_FAILED = 0x6300;
+	private final static short SW_PIN_VERIFICATION_REQUIRED = 0x6301;
+	
+	private static final byte GET_SERIAL_INS = 0x24;
+	private static final byte GET_NAME_INS = 0x26;
 	private static final byte CHALLENGE_INS = 0x28;
 	private static final byte GET_CERTIFICATE_INS = 0x30;
 
 	private final static byte PIN_TRY_LIMIT =(byte)0x03;
 	private final static byte PIN_SIZE =(byte)0x04;
-
-	private final static short SW_VERIFICATION_FAILED = 0x6300;
-	private final static short SW_PIN_VERIFICATION_REQUIRED = 0x6301;
 
 	private byte[] privModulus = new byte[]{(byte)-73, (byte)-43, (byte)96, (byte)-107, (byte)82, (byte)25, (byte)-66, (byte)34, (byte)5, (byte)-58, (byte)75, (byte)-39, (byte)-54, (byte)43, (byte)25, (byte)-117, (byte)80, (byte)-62, (byte)51, (byte)19, (byte)59, (byte)-70, (byte)-100, (byte)85, (byte)24, (byte)-57, (byte)108, (byte)-98, (byte)-2, (byte)1, (byte)-80, (byte)-39, (byte)63, (byte)93, (byte)112, (byte)7, (byte)4, (byte)18, (byte)-11, (byte)-98, (byte)17, (byte)126, (byte)-54, (byte)27, (byte)-56, (byte)33, (byte)77, (byte)-111, (byte)-74, (byte)-78, (byte)88, (byte)70, (byte)-22, (byte)-3, (byte)15, (byte)16, (byte)37, (byte)-18, (byte)92, (byte)74, (byte)124, (byte)-107, (byte)-116, (byte)-125};
 	private byte[] privExponent = new byte[]{(byte)24, (byte)75, (byte)93, (byte)-79, (byte)62, (byte)33, (byte)98, (byte)-52, (byte)50, (byte)65, (byte)43, (byte)-125, (byte)3, (byte)-63, (byte)-64, (byte)101, (byte)117, (byte)-19, (byte)-60, (byte)60, (byte)53, (byte)119, (byte)-118, (byte)-13, (byte)-128, (byte)11, (byte)-46, (byte)-30, (byte)12, (byte)37, (byte)-125, (byte)14, (byte)104, (byte)-5, (byte)-15, (byte)-120, (byte)-113, (byte)-49, (byte)-70, (byte)-78, (byte)114, (byte)122, (byte)34, (byte)114, (byte)-99, (byte)-102, (byte)43, (byte)-43, (byte)-102, (byte)71, (byte)115, (byte)116, (byte)-105, (byte)-48, (byte)-80, (byte)109, (byte)117, (byte)106, (byte)88, (byte)6, (byte)-69, (byte)-42, (byte)-83, (byte)25};

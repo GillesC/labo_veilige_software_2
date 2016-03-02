@@ -5,7 +5,7 @@ import be.msec.client.connection.SimulatedConnection;
 
 import javax.smartcardio.*;
 
-public class Client {
+public class ClientOld {
 
 	private final static byte IDENTITY_CARD_CLA =(byte)0x80;
 	private static final byte VALIDATE_PIN_INS = 0x22;
