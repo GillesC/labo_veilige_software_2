@@ -1,0 +1,166 @@
+package be.msec.client;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+
+import javax.smartcardio.CommandAPDU;
+import javax.smartcardio.ResponseAPDU;
+
+import be.msec.client.connection.Connection;
+import be.msec.client.connection.IConnection;
+import be.msec.client.connection.SimulatedConnection;
+
+public class Client {
+
+	private final static byte IDENTITY_CARD_CLA =(byte)0x80;
+	private static final byte VALIDATE_PIN_INS = 0x22;
+	private final static short SW_VERIFICATION_FAILED = 0x6300;
+	private final static short SW_PIN_VERIFICATION_REQUIRED = 0x6301;
+	
+	private static final byte GET_SERIAL_INS = 0x24;
+	private static final byte GET_NAME_INS = 0x26;
+	private static final byte CHALLENGE_INS = 0x28;
+	private static final byte GET_CERTIFICATE_INS = 0x30;
+
+	
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) throws Exception {
+		IConnection c;
+
+		//Simulation:
+		//c = new SimulatedConnection();
+
+		//Real Card:
+		c = new Connection();
+		((Connection)c).setTerminal(0); //depending on which cardreader you use
+		
+		c.connect(); 
+		
+		try {
+
+			/*
+			 * For more info on the use of CommandAPDU and ResponseAPDU:
+			 * See http://java.sun.com/javase/6/docs/jre/api/security/smartcardio/spec/index.html
+			 */
+			
+			CommandAPDU a;
+			ResponseAPDU r;
+			
+			//0. create applet (only for simulator!!!)
+			// CommandAPDU(int cla, int ins, int p1, int p2, byte[] data, int ne) 
+			//	cla - the class byte CLA
+			// 	ins - the instruction byte INS
+			//	p1 - the parameter byte P1
+			//	p2 - the parameter byte P2
+			//	ne - the maximum number of expected data bytes in a response APDU	
+			/*
+			a = new CommandAPDU(0x00, 0xa4, 0x04, 0x00,new byte[]{(byte) 0xa0, 0x00, 0x00, 0x00, 0x62, 0x03, 0x01, 0x08, 0x01}, 0x7f);
+			r = c.transmit(a);
+			System.out.println(r);
+			if (r.getSW()!=0x9000) throw new Exception("select installer applet failed");
+			
+			a = new CommandAPDU(0x80, 0xB8, 0x00, 0x00,new byte[]{0xb, 0x01,0x02,0x03,0x04, 0x05, 0x06, 0x07, 0x08, 0x09,0x00, 0x00, 0x00}, 0x7f);
+			r = c.transmit(a);
+			System.out.println(r);
+			if (r.getSW()!=0x9000) throw new Exception("Applet creation failed");
+			
+			//1. Select applet  (not required on a real card, applet is selected by default)
+			a = new CommandAPDU(0x00, 0xa4, 0x04, 0x00,new byte[]{0x01,0x02,0x03,0x04, 0x05, 0x06, 0x07, 0x08, 0x09,0x00, 0x00}, 0x7f);
+			r = c.transmit(a);
+			System.out.println(r);
+			if (r.getSW()!=0x9000) throw new Exception("Applet selection failed");
+			*/
+			
+			//2. Send PIN
+			a = new CommandAPDU(IDENTITY_CARD_CLA, VALIDATE_PIN_INS, 0x00, 0x00,new byte[]{0x01,0x02,0x03,0x04});
+			r = c.transmit(a);
+
+			System.out.println(r);
+			if (r.getSW()==SW_VERIFICATION_FAILED) throw new Exception("PIN INVALID");
+			else if(r.getSW()!=0x9000) throw new Exception("Exception on the card: " + r.getSW());
+			System.out.println("PIN Verified");
+			
+			//3. request serial number of card
+			a = new CommandAPDU(IDENTITY_CARD_CLA, GET_SERIAL_INS, 0x00, 0x00);
+			r = c.transmit(a);
+			if(r.getSW()==SW_PIN_VERIFICATION_REQUIRED) throw new Exception("PIN verification is required");
+			if (r.getSW()!=0x9000) throw new Exception("Serial Number request failed "+ r.getSW());
+			System.out.print("Serial ID : "); printBytes(r.getData());
+		
+			//4. getName
+			a = new CommandAPDU(IDENTITY_CARD_CLA, GET_NAME_INS, 0x00, 0x00);
+			r = c.transmit(a);
+			System.out.print("Name : "); printBytes(r.getData());
+			
+			if (r.getSW()!=0x9000) throw new Exception("Name request failed");
+			if(r.getSW()==SW_PIN_VERIFICATION_REQUIRED) throw new Exception("PIN verification is required");
+
+			/* generate random 20 bytes as challenge */
+			SecureRandom random = SecureRandom.getInstance("SHA1PRNG"); 
+			byte[] bytesChallenge = new byte[20];
+			random.nextBytes(bytesChallenge); 
+			System.out.print("Challenge : "); printBytes(bytesChallenge);
+			// send command with randombytes
+			a = new CommandAPDU(IDENTITY_CARD_CLA, CHALLENGE_INS, 0x00, 0x00, bytesChallenge);
+			byte[] sign = c.transmit(a).getData();
+			System.out.print("Signature : "); printBytes(sign);
+			// GET certificate from card
+			a = new CommandAPDU(IDENTITY_CARD_CLA, GET_CERTIFICATE_INS, 0x00, 0x00);
+			byte[] cardCertificate = c.transmit(a).getData();
+			System.out.print("Certificate : "); printBytes(cardCertificate);
+			//System.out.print("Certificate : "); printBytes(new byte[]{(byte)48, (byte)-126, (byte)1, (byte)-67, (byte)48, (byte)-126, (byte)1, (byte)103, (byte)-96, (byte)3, (byte)2, (byte)1, (byte)2, (byte)2, (byte)5, (byte)0, (byte)-73, (byte)-43, (byte)96, (byte)-107, (byte)48, (byte)13, (byte)6, (byte)9, (byte)42, (byte)-122, (byte)72, (byte)-122, (byte)-9, (byte)13, (byte)1, (byte)1, (byte)5, (byte)5, (byte)0, (byte)48, (byte)100, (byte)49, (byte)11, (byte)48, (byte)9, (byte)6, (byte)3, (byte)85, (byte)4, (byte)6, (byte)19, (byte)2, (byte)66, (byte)69, (byte)49, (byte)13, (byte)48, (byte)11, (byte)6, (byte)3, (byte)85, (byte)4, (byte)7, (byte)12, (byte)4, (byte)71, (byte)101, (byte)110, (byte)116, (byte)49, (byte)25, (byte)48, (byte)23, (byte)6, (byte)3, (byte)85, (byte)4, (byte)10, (byte)12, (byte)16, (byte)75, (byte)97, (byte)72, (byte)111, (byte)32, (byte)83, (byte)105, (byte)110, (byte)116, (byte)45, (byte)76, (byte)105, (byte)101, (byte)118, (byte)101, (byte)110, (byte)49, (byte)20, (byte)48, (byte)18, (byte)6, (byte)3, (byte)85, (byte)4, (byte)11, (byte)12, (byte)11, (byte)86, (byte)97, (byte)107, (byte)103, (byte)114, (byte)111, (byte)101, (byte)112, (byte)32, (byte)73, (byte)84, (byte)49, (byte)21, (byte)48, (byte)19, (byte)6, (byte)3, (byte)85, (byte)4, (byte)3, (byte)12, (byte)12, (byte)74, (byte)97, (byte)110, (byte)32, (byte)86, (byte)111, (byte)115, (byte)115, (byte)97, (byte)101, (byte)114, (byte)116, (byte)48, (byte)32, (byte)23, (byte)13, (byte)49, (byte)48, (byte)48, (byte)50, (byte)50, (byte)52, (byte)48, (byte)57, (byte)52, (byte)51, (byte)48, (byte)50, (byte)90, (byte)24, (byte)15, (byte)53, (byte)49, (byte)55, (byte)57, (byte)48, (byte)49, (byte)48, (byte)57, (byte)49, (byte)57, (byte)50, (byte)57, (byte)52, (byte)50, (byte)90, (byte)48, (byte)100, (byte)49, (byte)11, (byte)48, (byte)9, (byte)6, (byte)3, (byte)85, (byte)4, (byte)6, (byte)19, (byte)2, (byte)66, (byte)69, (byte)49, (byte)13, (byte)48, (byte)11, (byte)6, (byte)3, (byte)85, (byte)4, (byte)7, (byte)12, (byte)4, (byte)71, (byte)101, (byte)110, (byte)116, (byte)49, (byte)25, (byte)48, (byte)23, (byte)6, (byte)3, (byte)85, (byte)4, (byte)10, (byte)12, (byte)16, (byte)75, (byte)97, (byte)72, (byte)111, (byte)32, (byte)83, (byte)105, (byte)110, (byte)116, (byte)45, (byte)76, (byte)105, (byte)101, (byte)118, (byte)101, (byte)110, (byte)49, (byte)20, (byte)48, (byte)18, (byte)6, (byte)3, (byte)85, (byte)4, (byte)11, (byte)12, (byte)11, (byte)86, (byte)97, (byte)107, (byte)103, (byte)114, (byte)111, (byte)101, (byte)112, (byte)32, (byte)73, (byte)84, (byte)49, (byte)21, (byte)48, (byte)19, (byte)6, (byte)3, (byte)85, (byte)4, (byte)3, (byte)12, (byte)12, (byte)74, (byte)97, (byte)110, (byte)32, (byte)86, (byte)111, (byte)115, (byte)115, (byte)97, (byte)101, (byte)114, (byte)116, (byte)48, (byte)92, (byte)48, (byte)13, (byte)6, (byte)9, (byte)42, (byte)-122, (byte)72, (byte)-122, (byte)-9, (byte)13, (byte)1, (byte)1, (byte)1, (byte)5, (byte)0, (byte)3, (byte)75, (byte)0, (byte)48, (byte)72, (byte)2, (byte)65, (byte)0, (byte)-73, (byte)-43, (byte)96, (byte)-107, (byte)82, (byte)25, (byte)-66, (byte)34, (byte)5, (byte)-58, (byte)75, (byte)-39, (byte)-54, (byte)43, (byte)25, (byte)-117, (byte)80, (byte)-62, (byte)51, (byte)19, (byte)59, (byte)-70, (byte)-100, (byte)85, (byte)24, (byte)-57, (byte)108, (byte)-98, (byte)-2, (byte)1, (byte)-80, (byte)-39, (byte)63, (byte)93, (byte)112, (byte)7, (byte)4, (byte)18, (byte)-11, (byte)-98, (byte)17, (byte)126, (byte)-54, (byte)27, (byte)-56, (byte)33, (byte)77, (byte)-111, (byte)-74, (byte)-78, (byte)88, (byte)70, (byte)-22, (byte)-3, (byte)15, (byte)16, (byte)37, (byte)-18, (byte)92, (byte)74, (byte)124, (byte)-107, (byte)-116, (byte)-125, (byte)2, (byte)3, (byte)1, (byte)0, (byte)1, (byte)48, (byte)13, (byte)6, (byte)9, (byte)42, (byte)-122, (byte)72, (byte)-122, (byte)-9, (byte)13, (byte)1, (byte)1, (byte)5, (byte)5, (byte)0, (byte)3, (byte)65, (byte)0, (byte)33, (byte)97, (byte)121, (byte)-25, (byte)43, (byte)-47, (byte)113, (byte)-104, (byte)-11, (byte)-42, (byte)-46, (byte)-17, (byte)1, (byte)-38, (byte)50, (byte)59, (byte)-63, (byte)-74, (byte)-33, (byte)90, (byte)92, (byte)-59, (byte)99, (byte)-17, (byte)-60, (byte)17, (byte)25, (byte)79, (byte)68, (byte)68, (byte)-57, (byte)-8, (byte)-64, (byte)35, (byte)-19, (byte)-114, (byte)110, (byte)-116, (byte)31, (byte)-126, (byte)-24, (byte)54, (byte)71, (byte)82, (byte)-53, (byte)-78, (byte)-84, (byte)-45, (byte)-83, (byte)87, (byte)68, (byte)124, (byte)-1, (byte)-128, (byte)-49, (byte)124, (byte)103, (byte)28, (byte)56, (byte)-114, (byte)-10, (byte)97, (byte)-78, (byte)54});
+			CertificateFactory certFac = CertificateFactory.getInstance("X.509"); 
+			InputStream is = new ByteArrayInputStream(cardCertificate);
+			X509Certificate cert = (X509Certificate) certFac.generateCertificate(is);
+			// sign check (ALG_RSA_SHA_PKCS1)
+			Signature signature = Signature.getInstance("SHA1withRSA");
+			signature.initVerify(cert.getPublicKey());
+			signature.update(bytesChallenge); 
+			boolean ok = signature.verify(sign);
+			System.out.print("Verified? "+ok);
+
+
+		} catch (Exception e) {
+			throw e;
+		}
+		finally {
+			c.close();  // close the connection with the card
+		}
+
+
+	}
+
+	private static void printBytes(byte[] data) {
+		String sb1 = "";
+		for (byte b: data) {
+			sb1 +="0x" +  String.format("%02x", b) + " ";
+		}
+		System.out.println(sb1);
+		
+	}
+
+	public static boolean verify(byte[] data, PublicKey publicKey, byte[] sign) {
+        Signature signer;
+        try {
+            signer = Signature.getInstance("SHA1withRSA");
+            signer.initVerify(publicKey);
+            signer.update(data);
+            return (signer.verify(sign));
+        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+}

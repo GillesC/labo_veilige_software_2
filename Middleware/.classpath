@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry exported="true" kind="lib" path="libs/apduio.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.core_0.2.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.cref_0.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.jcbp.wizards_0.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.jcbp_0.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.jctools_0.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.jcwde_0.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.preferences_0.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="C:/Users/Gilles Callebaut/Google Drive/Master ELICT 2015-2016/4ELICT[2] 2015-2016/Private folder/Veilige software/veilige_software_sc/plugins/org.eclipsejcde.wizards_0.1.0.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
